@@ -1,0 +1,524 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="testrobot">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="0.149476250274979 0.071523909973143 0.0223286880955812"
+        rpy="0 0 0" />
+      <mass
+        value="0.25597782791656" />
+      <inertia
+        ixx="0.00036732873915157"
+        ixy="1.55566648582691E-05"
+        ixz="-4.503055849755E-07"
+        iyy="0.00095527475238888"
+        iyz="1.14013193288372E-08"
+        izz="0.000595041222210989" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.984313725490196 1 0.968627450980392 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="motor1">
+    <inertial>
+      <origin
+        xyz="5.52672379583452E-07 0.0320433854457543 -1.81318322994839E-08"
+        rpy="0 0 0" />
+      <mass
+        value="0.0280710275793574" />
+      <inertia
+        ixx="7.86188092937973E-06"
+        ixy="-5.17869583215886E-10"
+        ixz="-4.91816870040832E-13"
+        iyy="2.39598996218101E-06"
+        iyz="6.7116420162695E-12"
+        izz="7.85090790739426E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/motor1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/motor1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="motor1_joint"
+    type="fixed">
+    <origin
+      xyz="0.080964 -0.032483 0.052643"
+      rpy="-3.1416 0 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="motor1" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="wheel1">
+    <inertial>
+      <origin
+        xyz="-1.19558817915366E-05 3.26441016346921E-05 0.0217591841193318"
+        rpy="0 0 0" />
+      <mass
+        value="0.132869959415391" />
+      <inertia
+        ixx="2.84297142529603E-05"
+        ixy="1.75128850290476E-08"
+        ixz="-6.55315395302375E-08"
+        iyy="2.83549948054379E-05"
+        iyz="-1.45971577375387E-08"
+        izz="3.45616601084104E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/wheel1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/wheel1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wheel1_joint"
+    type="continuous">
+    <origin
+      xyz="0 0.057263 0"
+      rpy="1.5708 -1.1023 3.1416" />
+    <parent
+      link="motor1" />
+    <child
+      link="wheel1" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="motor2">
+    <inertial>
+      <origin
+        xyz="5.52672380554897E-07 0.0125605349580857 -1.81318331946012E-08"
+        rpy="0 0 0" />
+      <mass
+        value="0.0280710275793574" />
+      <inertia
+        ixx="7.86188092937972E-06"
+        ixy="-5.17869583282002E-10"
+        ixz="-4.91816870723822E-13"
+        iyy="2.39598996218101E-06"
+        iyz="6.71164201737927E-12"
+        izz="7.85090790739425E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/motor2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/motor2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="motor2_joint"
+    type="fixed">
+    <origin
+      xyz="0.080965 0 0.052643"
+      rpy="3.1416 1.012 -3.1416" />
+    <parent
+      link="base_link" />
+    <child
+      link="motor2" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="wheel2">
+    <inertial>
+      <origin
+        xyz="-1.19558817895798E-05 3.26441016334431E-05 0.0217591841193305"
+        rpy="0 0 0" />
+      <mass
+        value="0.13286995941539" />
+      <inertia
+        ixx="2.84297142529357E-05"
+        ixy="1.75128850307639E-08"
+        ixz="-6.55315395235346E-08"
+        iyy="2.83549948054198E-05"
+        iyz="-1.45971577536444E-08"
+        izz="3.45616601083838E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/wheel2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/wheel2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wheel2_joint"
+    type="continuous">
+    <origin
+      xyz="0 0.038231 0"
+      rpy="-1.5708 1.0485 0" />
+    <parent
+      link="motor2" />
+    <child
+      link="wheel2" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="motor3">
+    <inertial>
+      <origin
+        xyz="5.5267238078258E-07 0.0320433854457581 -1.81318349223858E-08"
+        rpy="0 0 0" />
+      <mass
+        value="0.0280710275793574" />
+      <inertia
+        ixx="7.86188092937974E-06"
+        ixy="-5.17869583223895E-10"
+        ixz="-4.91816868924929E-13"
+        iyy="2.39598996218101E-06"
+        iyz="6.71164201879606E-12"
+        izz="7.85090790739427E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/motor3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/motor3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="motor3_joint"
+    type="fixed">
+    <origin
+      xyz="0.20592 -0.032483 0.049338"
+      rpy="3.1416 1.3484 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="motor3" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="wheel3">
+    <inertial>
+      <origin
+        xyz="-1.19558817891913E-05 3.26441016330614E-05 0.0217591841193315"
+        rpy="0 0 0" />
+      <mass
+        value="0.132869959415391" />
+      <inertia
+        ixx="2.84297142529652E-05"
+        ixy="1.75128850273959E-08"
+        ixz="-6.55315395264663E-08"
+        iyy="2.8354994805442E-05"
+        iyz="-1.45971577583788E-08"
+        izz="3.45616601084161E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/wheel3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/wheel3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wheel3_joint"
+    type="continuous">
+    <origin
+      xyz="0 0.058016 0"
+      rpy="1.5708 0.59639 3.1416" />
+    <parent
+      link="motor3" />
+    <child
+      link="wheel3" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="motor4">
+    <inertial>
+      <origin
+        xyz="5.52672380318975E-07 0.0290433853624295 -1.8131832812962E-08"
+        rpy="0 0 0" />
+      <mass
+        value="0.0280710275793575" />
+      <inertia
+        ixx="7.86188092937976E-06"
+        ixy="-5.17869583233703E-10"
+        ixz="-4.91816869663825E-13"
+        iyy="2.39598996218102E-06"
+        iyz="6.71164201340817E-12"
+        izz="7.85090790739429E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/motor4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/motor4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="motor4_joint"
+    type="fixed">
+    <origin
+      xyz="0.20592 -0.016483 0.049338"
+      rpy="0 1.3764 0" />
+    <parent
+      link="base_link" />
+    <child
+      link="motor4" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+  <link
+    name="wheel4">
+    <inertial>
+      <origin
+        xyz="-1.19558817901488E-05 3.26441016330059E-05 0.0217591841193154"
+        rpy="0 0 0" />
+      <mass
+        value="0.132869959415391" />
+      <inertia
+        ixx="2.84297142529887E-05"
+        ixy="1.75128850267208E-08"
+        ixz="-6.55315395274601E-08"
+        iyy="2.83549948054589E-05"
+        iyz="-1.45971577507848E-08"
+        izz="3.45616601084392E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/wheel4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/wheel4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="wheel4_joint"
+    type="continuous">
+    <origin
+      xyz="0 0.056005 0"
+      rpy="-1.5708 1.4447 0" />
+    <parent
+      link="motor4" />
+    <child
+      link="wheel4" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="lidar_link">
+    <inertial>
+      <origin
+        xyz="-0.0784927583516922 0.744427353170623 0.133450456489652"
+        rpy="0 0 0" />
+      <mass
+        value="0.0730823990338202" />
+      <inertia
+        ixx="1.95800860912246E-05"
+        ixy="-4.28358128257305E-07"
+        ixz="1.04044150679048E-07"
+        iyy="4.14183997896836E-05"
+        iyz="-9.38690930339323E-09"
+        izz="2.41258046341559E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/lidar_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.752941176470588 0.752941176470588 0.752941176470588 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://ros_foxy/meshes/mecanum/lidar_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="lidar_joint"
+    type="fixed">
+    <origin
+      xyz="0.20535 0.10435 -0.61057"
+      rpy="1.5702 0.026433 -0.021425" />
+    <parent
+      link="base_link" />
+    <child
+      link="lidar_link" />
+    <axis
+      xyz="0 0 0" />
+  </joint>
+</robot>

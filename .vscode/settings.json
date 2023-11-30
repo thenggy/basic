@@ -1,0 +1,18 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/ggy/123/install/code/lib/python3.8/site-packages",
+        "/home/ggy/ros2_ws/install/my_package/lib/python3.8/site-packages",
+        "/home/ggy/ros2_ws/install/launch_tutorial/lib/python3.8/site-packages",
+        "/home/ggy/ros2_ws/install/launch_testing/lib/python3.8/site-packages",
+        "/home/ggy/ros2_ws/install/aba/lib/python3.8/site-packages",
+        "/opt/ros/foxy/lib/python3.8/site-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/ggy/123/install/code/lib/python3.8/site-packages",
+        "/home/ggy/ros2_ws/install/my_package/lib/python3.8/site-packages",
+        "/home/ggy/ros2_ws/install/launch_tutorial/lib/python3.8/site-packages",
+        "/home/ggy/ros2_ws/install/launch_testing/lib/python3.8/site-packages",
+        "/home/ggy/ros2_ws/install/aba/lib/python3.8/site-packages",
+        "/opt/ros/foxy/lib/python3.8/site-packages"
+    ]
+}

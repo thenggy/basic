@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/ggy/123/install/openslam_gmapping/include/**",
+        "/opt/ros/foxy/include/**",
+        "/home/ggy/123/src/ros_foxy/include/**",
+        "/home/ggy/123/src/slam_gmapping/openslam_gmapping/include/**",
+        "/home/ggy/123/src/slam_gmapping/slam_gmapping/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
