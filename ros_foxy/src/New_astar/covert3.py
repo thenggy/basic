@@ -224,7 +224,7 @@ class AStarActionServer(Node):
                     # prev_pose = [self.curr_pose.x, self.curr_pose.y]
                     rclpy.spin_once(self, timeout_sec=0.01)
             self.start_goal = False 
-            # self.stop_robot() 
+            self.stop_robot() 
             
              # Reset this flag or similar flags
             
@@ -356,10 +356,10 @@ class AStarActionServer(Node):
         """Proportional controller for Position"""
         # if we need to rotate more than 60 degrees (arbitrarily), we should first turn and then move forward later
         # This will allow robot to stay on course
-        if abs(self.get_angle_error()) > math.pi/4.0:
+        if abs(self.get_angle_error()) > math.pi/5.0:
             return 0.0
         # Calculate proportional linear velocity
-        return self.bound(Kp * self.get_position_error(), 0.5) # Max linear velocity from Turtlebot4 datasheet: 0.3m/s
+        return self.bound(Kp * self.get_position_error(), 0.3) # Max linear velocity from Turtlebot4 datasheet: 0.3m/s
 
     def get_required_theta(self):
         """Calculate angle needed for turtlebot to face the setpoint"""

@@ -22,7 +22,7 @@ def generate_launch_description():
 	]
 	launch_file_dir = os.path.join(get_package_share_directory('ros_foxy'), 'launch')
 
-	map_file = os.path.join(get_package_share_directory("ros_foxy"), 'maps', 'x_map1.yaml')
+	map_file = os.path.join(get_package_share_directory("ros_foxy"), 'maps', 'map_vision_ai.yaml')
 	params_file = os.path.join(get_package_share_directory("ros_foxy"), 'config', 'localization.yaml')
 	# nav2_yaml = os.path.join(get_package_share_directory('ros_foxy'),'param','localization.yaml')
 	
