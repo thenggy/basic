@@ -15,6 +15,7 @@ def distance(x1, y1, x2, y2):
     return sqrt((x2 - x1)**2 + (y2 - y1)**2)
 
 class P_Path(Node):
+    # update again
     def __init__(self):
         super().__init__('path_publisher')
         # self.odom_subscription = self.create_subscription(Odometry, '/odom', self.odom_callback, 1)
