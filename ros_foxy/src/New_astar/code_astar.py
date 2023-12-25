@@ -563,7 +563,7 @@ class PathPublisherNode(Node):
         
     def map_callback(self, msg):
         """Load received global costmap and convert to obstacle lists"""
-        
+        # Code to merged
         if self.occupancy_map is None:
             self.origin = [msg.info.origin.position.x, msg.info.origin.position.y]
             self.height = msg.info.height
