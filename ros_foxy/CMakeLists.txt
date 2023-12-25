@@ -39,12 +39,7 @@ install(DIRECTORY rviz urdf launch src world config meshes maps models
 )
 
 install(PROGRAMS
-  src/astar_static.py
-  src/dwa_static.py
-  src/astar_single.py
-  src/p.py
-  src/astar_costmap_v1.py
-  src/lidar_P_Control.py
+
   DESTINATION lib/${PROJECT_NAME}
 )
 

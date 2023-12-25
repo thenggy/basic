@@ -8,33 +8,8 @@ import math
 
 from scipy.interpolate import interp1d
 
-
 # List containing directions for neighboring indices (i,j) = (x,y)
 dirVal = [ (0,1), (1,1), (1,0),(0,-1), (1,-1), (-1,0), (-1, -1), (-1, 1)]
-
-def smooth_path(path, factor=0.1):
-    if len(path) < 3:
-        return path  # Not enough points to smooth
-
-    path = np.array(path)
-    x, y = path[:, 0], path[:, 1]
-
-    # Creating a parameterization variable (distance along the path)
-    distance = np.cumsum(np.sqrt(np.sum(np.diff(path, axis=0)**2, axis=1)))
-    distance = np.insert(distance, 0, 0)/distance[-1]
-
-    # Spline interpolation
-    spline_x = interp1d(distance, x, kind='cubic')
-    spline_y = interp1d(distance, y, kind='cubic')
-
-    # New distance (with more points)
-    alpha = np.linspace(0, 1, int(len(distance)/factor))
-
-    # Interpolated path
-    smooth_path_x = spline_x(alpha)
-    smooth_path_y = spline_y(alpha)
-
-    return np.vstack((smooth_path_x, smooth_path_y)).T
 
 def is_legal(maze, visited, nxt_pos):
     """Function to check if a cell to is be visited or not"""
@@ -127,33 +102,39 @@ def A_star(maze: np.ndarray, start, end):
                         visited[nxt_pos[0],nxt_pos[1]] = True
     # No path found
     return [], 0
+def expand_obstacles(occupancy_grid, robot_radius):
+    expanded_grid = np.copy(occupancy_grid)
+    grid_height, grid_width = occupancy_grid.shape
+    radius_cells = int(math.ceil(robot_radius))
+
+    for y in range(grid_height):
+        for x in range(grid_width):
+            if occupancy_grid[y, x] > 50.0:  # Obstacle
+                for dy in range(-radius_cells, radius_cells + 1):
+                    for dx in range(-radius_cells, radius_cells + 1):
+                        new_x, new_y = x + dx, y + dy
+                        if 0 <= new_x < grid_width and 0 <= new_y < grid_height:
+                            expanded_grid[new_y, new_x] = 100
+    return expanded_grid
         
 
-def find_path(start: tuple, goal: tuple, occupancy_grid):
-    
-    # Compute the path with A*
-    path, cost = A_star(occupancy_grid, start, goal)
-    # print("pathaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",path)
-    # print("olo",cost)
-    # path = np.array(list(path))
-    if len(path) == 0:
-        return [], 0  # Return empty path if A* found no path
+def find_path(start, goal, occupancy_grid, robot_radius):
+    expanded_grid = expand_obstacles(occupancy_grid, robot_radius)
+    path, cost = A_star(expanded_grid, start, goal)
 
-    # Smoothing the path
-    smoothed_path = smooth_path(path)
-
+    # Visualization code...
     # plt.cla()
-    # show_animation = 1
     # if show_animation:  # pragma: no cover
-    #     plt.plot(occupancy_grid ,".k")
-    #     plt.plot(start ,"og")
-    #     plt.plot(goal, "xb")
+    #     plt.imshow(expanded_grid, cmap='gray', interpolation='nearest')
+    #     plt.plot(start[1], start[0], "og")  # Start in green
+    #     plt.plot(goal[1], goal[0], "xb")   # End in blue
+    #     path = np.array(path)
+    #     if path.size > 0:
+    #         plt.plot(path[:, 1], path[:, 0], "-r")  # Path in red
     #     plt.grid(True)
     #     plt.axis("equal")
-    #     plt.plot( path,"-r")
-    #     plt.pause(0.001)
-    #     #plt.show()
-    #     plt.draw()
+    #     plt.show()
+
+    return path, cost
 
     
-    return smoothed_path, cost

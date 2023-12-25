@@ -54,7 +54,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
           'world',
-          default_value=[os.path.join(pkg_box_bot_gazebo, 'world','world12.sdf')],
+          default_value=[os.path.join(pkg_box_bot_gazebo, 'models','new_world')],
           description='SDF world file'),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([launch_file_dir, '/rviz.launch.py']),

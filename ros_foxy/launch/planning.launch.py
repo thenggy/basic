@@ -43,7 +43,7 @@ def generate_launch_description():
         default=os.path.join(
             get_package_share_directory('ros_foxy'),
             'maps',
-            'map_vision_ai.yaml')) # 1111_map.yaml  , x_map002.yaml , map_vision_ai.yaml
+            'my_map_save.yaml')) # 1111_map.yaml  , x_map002.yaml , map_vision_ai.yaml
 
     if 'GAZEBO_MODEL_PATH' in os.environ:
         os.environ['GAZEBO_MODEL_PATH'] =  os.environ['GAZEBO_MODEL_PATH'] + ':' + install_dir + '/share' + ':' + gazebo_models_path
@@ -67,7 +67,7 @@ def generate_launch_description():
         )
     )    
 
-    return LaunchDescription([
+    return launch.LaunchDescription([
         DeclareLaunchArgument(
             'maps',
             default_value=map_dir,
@@ -93,13 +93,26 @@ def generate_launch_description():
         #     output='screen',
         #     name='Odometry_Node'
         # ),
-        Node(
-                package='nav2_map_server',
-                executable='map_server',
-                name='map_server',
-                output='screen',
-                parameters=[{'yaml_filename': map_dir},{'use_sim_time': True}]
-                ),
+        # Node(
+        #         package='nav2_map_server',
+        #         executable='map_server',
+        #         name='map_server',
+        #         output='screen',
+        #         parameters=[{'yaml_filename': map_dir},{'use_sim_time': True}]
+        #         ),
+        
+        launch.actions.TimerAction(
+			period=1.5,
+			actions=[
+				launch_ros.actions.Node(
+					package='nav2_map_server',
+					executable='map_server',
+					name='map_server',
+					output='screen',
+					parameters=[{'yaml_filename': map_dir}]
+				),
+			],
+		),
         Node(
                 package = "tf2_ros", 
                 executable = "static_transform_publisher",

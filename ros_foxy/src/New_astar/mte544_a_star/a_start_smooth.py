@@ -10,10 +10,8 @@ from scipy.interpolate import interp1d
 from scipy.signal import savgol_filter
 import numpy as np
 
-from scipy.spatial import KDTree
-
-
 import math
+from sensor_msgs.msg import LaserScan
 
 show_animation = True
 
@@ -23,6 +21,10 @@ def smooth_trajectory(trajectory_x, trajectory_y, window_size=20, poly_order=2):
     smoothed_x = savgol_filter(trajectory_x, window_size, poly_order)
     smoothed_y = savgol_filter(trajectory_y, window_size, poly_order)
     return smoothed_x, smoothed_y
+
+
+
+
 
 class AStarPlanner:
 
@@ -57,6 +59,9 @@ class AStarPlanner:
         open_set, closed_set = dict(), dict()
         open_set[self.calc_grid_index(start_node)] = start_node
 
+       
+       
+       
         while True:
             if len(open_set) == 0:
                 print("Open set is empty..")
@@ -69,6 +74,9 @@ class AStarPlanner:
                                                                          o]))
             current = open_set[c_id]
 
+        
+        
+        
             # show graph
             show_animation = 0
             
@@ -119,6 +127,10 @@ class AStarPlanner:
 
         return rx, ry
 
+    
+    
+    
+    
     def calc_final_path(self, goal_node, closed_set):
         # generate final course
         rx, ry = [self.calc_grid_position(goal_node.x, self.min_x)], [
@@ -167,6 +179,10 @@ class AStarPlanner:
 
         return True
 
+    
+    
+    
+    
     def calc_obstacle_map(self, ox, oy):
 
         self.min_x = round(min(ox))
@@ -190,6 +206,10 @@ class AStarPlanner:
                         self.obstacle_map[ix][iy] = True
                         break
 
+   
+   
+   
+   
     @staticmethod
     def get_motion_model():
         # dx, dy, cost
@@ -204,33 +224,25 @@ class AStarPlanner:
 
         return motion
 
-# def remove_close_obstacles(obstacle_x_list, obstacle_y_list, min_distance=0.2):
-#     new_obstacle_x = []
-#     new_obstacle_y = []
-
-#     for i in range(len(obstacle_x_list)):
-#         is_far_enough = True
-
-#         for j in range(len(new_obstacle_x)):
-#             distance = ((obstacle_x_list[i] - new_obstacle_x[j])**2 +
-#                         (obstacle_y_list[i] - new_obstacle_y[j])**2)**0.5
-
-#             if distance < min_distance:
-#                 is_far_enough = False
-#                 break
-
-#         if is_far_enough:
-#             new_obstacle_x.append(obstacle_x_list[i])
-#             new_obstacle_y.append(obstacle_y_list[i])
-
-#     return new_obstacle_x, new_obstacle_y
 def remove_close_obstacles(obstacle_x_list, obstacle_y_list, min_distance=0.2):
-    obstacle_points = np.column_stack((obstacle_x_list, obstacle_y_list))
-    tree = KDTree(obstacle_points)
-    unique_indices = list(tree.query_ball_tree(tree, r=min_distance))
-    unique_indices = set([lst[0] for lst in unique_indices])
-    new_obstacle_x = [obstacle_x_list[i] for i in unique_indices]
-    new_obstacle_y = [obstacle_y_list[i] for i in unique_indices]
+    new_obstacle_x = []
+    new_obstacle_y = []
+
+    for i in range(len(obstacle_x_list)):
+        is_far_enough = True
+
+        for j in range(len(new_obstacle_x)):
+            distance = ((obstacle_x_list[i] - new_obstacle_x[j])**2 +
+                        (obstacle_y_list[i] - new_obstacle_y[j])**2)**0.5
+
+            if distance < min_distance:
+                is_far_enough = False
+                break
+
+        if is_far_enough:
+            new_obstacle_x.append(obstacle_x_list[i])
+            new_obstacle_y.append(obstacle_y_list[i])
+
     return new_obstacle_x, new_obstacle_y
 
 class PathPublisherNode(Node):
@@ -244,6 +256,11 @@ class PathPublisherNode(Node):
             '/tf',
             self.tf_callback,
             1)
+        self.laser_subscription = self.create_subscription(
+            LaserScan,
+            '/scan',
+            self.laser_callback,
+            1)
         self.path_publisher = self.create_publisher(Path, '/robot_path', 1)
         self.path = Path()
 
@@ -252,17 +269,85 @@ class PathPublisherNode(Node):
         self.gx = 0.0
         self.gy = 0.0
 
-        self.grid_size = 0.4 # [m]
-        self.robot_radius = 0.8 # [m]
-
-        self.ox = []
-        self.oy = []
+        self.ox = [0.0]
+        self.oy = [0.0]
 
         self.yaw = 0.0
         
         self.map_to_odom_x = 0.0
         self.map_to_odom_y = 0.0
+        
+        self.map_ox = []
+        self.map_oy = []
+        self.laser_ox = []
+        self.laser_oy = []
+        # self.ox = np.concatenate((self.map_ox, self.laser_ox))
+        # self.oy = np.concatenate((self.map_oy, self.laser_oy))
+        self.rx = np.array([])
+        self.ry = np.array([])
 
+        self.yaw = 0.0
+
+        self.grid_size = 0.2 # [m]
+        self.robot_radius = 0.5 # [m]
+
+
+        self.a_star = AStarPlanner(self.ox, self.oy, self.grid_size, self.robot_radius)
+
+    
+    def laser_callback(self, msg):
+        print("Laser received!")
+        max_range = 1.0
+
+        valid_ranges = (0.0 < np.array(msg.ranges)) & (np.array(msg.ranges) < max_range)
+        angles = np.linspace(msg.angle_min, msg.angle_max, len(msg.ranges))
+        x = msg.ranges * np.cos(angles)
+        y = msg.ranges * np.sin(angles)
+            
+        # Rotate the points based on the robot's current yaw
+        rotated_x = x * np.cos(self.yaw) - y * np.sin(self.yaw)
+        rotated_y = x * np.sin(self.yaw) + y * np.cos(self.yaw)
+        
+        self.laser_ox, self.laser_oy = remove_close_obstacles(rotated_x[valid_ranges] + self.sx, rotated_y[valid_ranges] + self.sy, 0.1)
+        
+
+        # self.ox =  self.laser_ox
+        # self.oy = self.laser_oy
+        
+        self.ox, self.oy = remove_close_obstacles(self.ox, self.oy, 0.1)
+        self.a_star.calc_obstacle_map(self.ox, self.oy)
+
+        # distances = np.sqrt((self.rx[:, np.newaxis] - self.laser_ox)**2 + (self.ry[:, np.newaxis] - self.laser_oy)**2)
+        # obstacle_msg = Bool()
+        plt.cla()
+        show_animation = 1
+        if show_animation:  # pragma: no cover
+            plt.plot(self.ox, self.oy, ".k")
+            plt.plot(self.sx, self.sy, "og")
+            plt.plot(self.gx, self.gy, "xb")
+            plt.grid(True)
+            plt.axis("equal")
+            plt.plot(self.rx, self.ry, "-r")
+            plt.pause(0.001)
+            #plt.show()
+            plt.draw()
+
+        # if np.any(distances <= 0.2):
+        #     obstacle_msg.data = True
+        #     if self.last_time_obstacle_detected is None:
+        #         self.last_time_obstacle_detected = time.perf_counter()
+        # else:
+        #     obstacle_msg.data = False
+        #     self.last_time_obstacle_detected = None
+
+        # if self.last_time_obstacle_detected and time.perf_counter() - self.last_time_obstacle_detected >= 5 or len(self.rx) < 2:
+        #     self.get_path()
+        #     self.last_time_obstacle_detected = None 
+        
+        # self.obstacle_publisher.publish(obstacle_msg)
+
+            
+            
     def odom_callback(self, msg):
         pose = msg.pose.pose
         
@@ -282,9 +367,13 @@ class PathPublisherNode(Node):
         self.gy = msg.pose.position.y + self.map_to_odom_y
         self.orientation = msg.pose.orientation
 
+        self.get_path()
+    
+    def get_path(self):
+        
         self.rx, self.ry = self.a_star.planning(self.sx, self.sy, self.gx, self.gy)
         plt.cla()
-
+        
         show_animation = 1
         if show_animation:  # pragma: no cover
             plt.plot(self.ox, self.oy, ".k")
@@ -296,34 +385,26 @@ class PathPublisherNode(Node):
             plt.pause(0.001)
             #plt.show()
             plt.draw()
-        initial_length = np.sum(np.sqrt(np.diff(self.rx)**2 + np.diff(self.ry)**2))
+
         #print(np.array(self.rx).shape)
 
         # Create an interpolating function for x and y coordinates
-        # interpolator_x = interp1d(range(len(self.rx)), self.rx, kind='linear')
-        # interpolator_y = interp1d(range(len(self.ry)), self.ry, kind='linear')
+        interpolator_x = interp1d(range(len(self.rx)), self.rx, kind='linear')
+        interpolator_y = interp1d(range(len(self.ry)), self.ry, kind='linear')
 
-        # # Calculate the total length of the initial trajectory
-        # initial_length = np.sum(np.sqrt(np.diff(self.rx)**2 + np.diff(self.ry)**2))
+        # Calculate the total length of the initial trajectory
+        initial_length = np.sum(np.sqrt(np.diff(self.rx)**2 + np.diff(self.ry)**2))
 
-        # # Determine the number of segments needed
-        # num_segments = int(np.ceil(initial_length / 0.05))
-
-        # # Generate equidistant points along the trajectory using interpolation
-        # t_new = np.linspace(0, len(self.rx) - 1, num_segments + 1)
-        # rx_new = interpolator_x(t_new)
-        # ry_new = interpolator_y(t_new)
-        
+        # Determine the number of segments needed
         num_segments = int(np.ceil(initial_length / 0.05))
 
         # Generate equidistant points along the trajectory using interpolation
         t_new = np.linspace(0, len(self.rx) - 1, num_segments + 1)
-        rx_new = np.interp(t_new, np.arange(len(self.rx)), self.rx)
-        ry_new = np.interp(t_new, np.arange(len(self.ry)), self.ry)
+        rx_new = interpolator_x(t_new)
+        ry_new = interpolator_y(t_new)
 
         self.rx = rx_new
-        self.ry = ry_new      
-
+        self.ry = ry_new
 
         try:
             self.rx, self.ry = smooth_trajectory(self.rx, self.ry)
@@ -331,7 +412,7 @@ class PathPublisherNode(Node):
             print("No obstacle")
 
         # Combine x and y coordinates to form the complete path
-        # complete_path = list(zip(rx_new, ry_new))
+        complete_path = list(zip(rx_new, ry_new))
 
         path_msg = Path()
         path_msg.header.stamp = self.get_clock().now().to_msg()
@@ -359,8 +440,8 @@ class PathPublisherNode(Node):
         self.resolution = msg.info.resolution
         self.origin = msg.info.origin
 
-        self.ox = []
-        self.oy = []
+        self.map_ox = []
+        self.map_oy = []
 
         for y in range(self.height):
             for x in range(self.width):
@@ -370,17 +451,11 @@ class PathPublisherNode(Node):
                 if cell_value >= 40:
                     obstacle_x = self.origin.position.x + (x + 0.5) * self.resolution + self.map_to_odom_x # convert to meter
                     obstacle_y = self.origin.position.y + (y + 0.5) * self.resolution + self.map_to_odom_y
-                    self.ox.append(obstacle_x)
-                    self.oy.append(obstacle_y)
+                    self.map_ox.append(obstacle_x)
+                    self.map_oy.append(obstacle_y)
 
-        self.ox, self.oy = remove_close_obstacles(self.ox, self.oy, 0.8)
+        self.ox, self.oy = remove_close_obstacles(self.map_ox, self.map_oy, 0.1)
         
-        try: 
-            del self.a_star
-        except:
-            print("start")
-            
-        self.a_star = AStarPlanner(self.ox, self.oy, self.grid_size, self.robot_radius)
 
     def tf_callback(self, msg):
         for transform in msg.transforms:

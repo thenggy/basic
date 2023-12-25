@@ -18,11 +18,13 @@ def generate_launch_description():
 	lifecycle_nodes = [
 		'map_server',
 		'planner_server',
-		'amcl',
+		# 'amcl',
+		# 'controller_server',
+		# 'recoveries_server'
 	]
 	launch_file_dir = os.path.join(get_package_share_directory('ros_foxy'), 'launch')
 
-	map_file = os.path.join(get_package_share_directory("ros_foxy"), 'maps', 'map_vision_ai.yaml')
+	map_file = os.path.join(get_package_share_directory("ros_foxy"), 'maps', 'new_map.yaml')  #map_vision_ai  map_v118ision
 	params_file = os.path.join(get_package_share_directory("ros_foxy"), 'config', 'localization.yaml')
 	# nav2_yaml = os.path.join(get_package_share_directory('ros_foxy'),'param','localization.yaml')
 	
@@ -78,13 +80,20 @@ def generate_launch_description():
 		# 	arguments=['-d', [os.path.join(get_package_share_directory("mte544_a_star"), 'launch')]]
 		# ),
   
-		        launch_ros.actions.Node(
-        package='nav2_amcl',
-        executable='amcl',
-        name='amcl',
-        output='screen',
-        parameters=[params_file]
-        ),
+		#         launch_ros.actions.Node(
+        # package='nav2_amcl',
+        # executable='amcl',
+        # name='amcl',
+        # output='screen',
+        # parameters=[params_file]
+        # ),
+          
+            #     launch_ros.actions.Node(
+            # package='nav2_controller',
+            # executable='controller_server',
+            # name='controller_server',
+            # parameters=[params_file],
+            # ),
 
 		# launch_ros.actions.Node(
 		# 	package='mte544_a_star',
@@ -94,4 +103,11 @@ def generate_launch_description():
         #     PythonLaunchDescriptionSource([launch_file_dir, '/gazebo.launch.py']),
         #     # launch_arguments={'use_sim_time': use_sim_time}.items(),
         # ),
+                launch_ros.actions.Node(
+            package='nav2_recoveries',
+            executable='recoveries_server',
+            name='recoveries_server',
+            # name='recoveries_server',
+            parameters=[params_file],
+				),
     ])

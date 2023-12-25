@@ -78,7 +78,7 @@ class P_Path(Node):
         elif theta_difference < -pi:
             theta_difference += 2 * pi
         
-        kp_v = 1.2
+        kp_v = 0.5
         kp_w = 1.2
 
         cmd_msg = Twist()

@@ -32,7 +32,7 @@ def generate_launch_description():
         default=os.path.join(
             get_package_share_directory('ros_foxy'),
             'maps',
-            'x_map1.yaml')) # map_dronp.yaml
+            'map_vision_ai.yaml')) # map_dronp.yaml
 
     nav2_yaml=os.path.join(get_package_share_directory('ros_foxy'),'config','localization.yaml')
 

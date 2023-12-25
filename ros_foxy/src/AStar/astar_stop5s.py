@@ -268,8 +268,9 @@ class PathPublisherNode(Node):
         self.a_star = AStarPlanner(self.ox, self.oy, self.grid_size, self.robot_radius)
         self.counter = 0
 
+    #Subscribe a Laser when the robot see the obstacle in range 3 meters the robot will stop and generate a new path 
     def laser_callback(self, msg):
-        max_range = 1.0
+        max_range = 3.0
 
         valid_ranges = (0.0 < np.array(msg.ranges)) & (np.array(msg.ranges) < max_range)
         angles = np.linspace(msg.angle_min, msg.angle_max, len(msg.ranges))
@@ -301,12 +302,14 @@ class PathPublisherNode(Node):
             obstacle_msg.data = False
             self.last_time_obstacle_detected = None
 
+        #when the robot detect the obstacle in range 3 meter the robot will stop for 5 second  and update a path  
         if self.last_time_obstacle_detected and time.perf_counter() - self.last_time_obstacle_detected >= 5.0:
             self.get_path()
             self.last_time_obstacle_detected = None 
         
         self.obstacle_publisher.publish(obstacle_msg)
-
+    
+    #Subscribe from odometry to get the starting point of Astar  self.sx and self.sy 
     def odom_callback(self, msg):
         pose = msg.pose.pose
         
@@ -319,7 +322,9 @@ class PathPublisherNode(Node):
         qz = pose.orientation.z
 
         self.yaw = math.atan2(2.0 * (qw * qz + qx * qy), 1.0 - 2.0 * (qy * qy + qz * qz))
-
+    
+    #Subscribe goal pose From Rviz2 and always update a path {This is the ending point of the Astar self.gx and self.gy}
+    
     def goal_pose_callback(self, msg):
         self.gx = msg.pose.position.x + self.map_to_odom_x
         self.gy = msg.pose.position.y + self.map_to_odom_y
@@ -392,6 +397,7 @@ class PathPublisherNode(Node):
 
         self.path_publisher.publish(path_msg)   
 
+    #subscribe map from launch file and pass the self.map_ox , self.map_oy to AStarPlanner function   
     def map_callback(self, msg):
         self.width = msg.info.width
         self.height = msg.info.height

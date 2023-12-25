@@ -14,6 +14,7 @@ from mte544_a_star.a_star_skeleton1 import find_path
 import numpy as np
 # from mte544_action_interfaces.action import Move2Goal
 from skimage.transform import downscale_local_mean # scale map
+from math import atan2, hypot, sqrt, pi
 
 import math
 from geometry_msgs.msg import Twist
@@ -22,6 +23,7 @@ from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from geometry_msgs.msg import PointStamped, Twist, PoseWithCovarianceStamped,PoseStamped
+from sensor_msgs.msg import LaserScan
 
 
 class AStarActionServer(Node):
@@ -34,11 +36,13 @@ class AStarActionServer(Node):
         # create the subscriber object to Nav2 costmap
         self.global_map_sub = self.create_subscription(
             OccupancyGrid, '/global_costmap/costmap', self.map_callback, QoSProfile(depth=300, reliability=ReliabilityPolicy.BEST_EFFORT))
-        
+        # self.map_subscription = self.create_subscription(OccupancyGrid, '/map', self.map_callback, 1)
         self.goal_pose_sub = self.create_subscription(
             PoseStamped, '/goal_pose', self.goal_pose_rviz_callback, QoSProfile(depth=10, reliability=ReliabilityPolicy.BEST_EFFORT))
         
         self.Pose_Estimate_subscription = self.create_subscription(PoseWithCovarianceStamped, '/abc', self.pose_estimate_callback,1)
+        
+        self.timer = self.create_timer(0.1, self.follow_path)
 
         # Create path visualizer publisher 
                 # Create path visualizer publisher 
@@ -51,7 +55,7 @@ class AStarActionServer(Node):
         self.occupancy_map = None
         
         # List of cartisian points containing A* path to goal, in map frame in meters
-        self.path_cart = []
+        # self.path_cart = []
         
         self.goal_pose = None
         
@@ -75,7 +79,16 @@ class AStarActionServer(Node):
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
         
+        self.POSITION_THRESHOLD = 0.1
+        self.path_cart = np.array([])
         
+        self.laser_scan_sub = self.create_subscription(
+            LaserScan,
+            '/scan',
+            self.laser_scan_callback,
+            10)
+        self.current_laser_scan = None 
+
      
     def pose_estimate_callback(self, initial_pose):
         """Determine whether to accept or reject the goal"""
@@ -91,25 +104,73 @@ class AStarActionServer(Node):
             
         
         self.start = self.coord_2_pixel((initial_pose.pose.pose.position.x, initial_pose.pose.pose.position.y))
-        self.get_path()
+        # print(initial_pose.pose.pose.position.x)
+        self.curr_pose.x = initial_pose.pose.pose.position.x
+        self.curr_pose.y = initial_pose.pose.pose.position.y
+        if self.new_goal_received :
+            self.get_path()
+        # self.get_path()
+
+    def update_occupancy_map_with_obstacles(self):
+        if self.current_laser_scan is None:
+            return
+
+        for i, range in enumerate(self.current_laser_scan.ranges):
+            if range < self.current_laser_scan.range_min or range > self.current_laser_scan.range_max:
+                continue  # Ignore invalid ranges
+
+            # Calculate the angle of the current laser scan point
+            angle = self.current_laser_scan.angle_min + i * self.current_laser_scan.angle_increment
+
+            # Calculate the coordinates in the robot frame
+            x_robot = range * math.cos(angle)
+            y_robot = range * math.sin(angle)
+
+            # Transform these coordinates to the map frame
+            # This requires knowing the current position and orientation of the robot in the map frame
+            x_map, y_map = self.transform_to_map_frame(x_robot, y_robot)
+
+            # Convert these map coordinates to occupancy grid cells
+            cell_x, cell_y = self.coord_2_pixel((x_map, y_map))
+
+            # Update the occupancy grid
+            # Make sure to check the bounds of the grid
+            if 0 <= cell_x < self.occupancy_map.shape[0] and 0 <= cell_y < self.occupancy_map.shape[1]:
+                self.occupancy_map[cell_x, cell_y] = 100  # Mark as occupied (assuming 100 represents occupied space)
+
+    def transform_to_map_frame(self, x_robot, y_robot):
+        # Assuming self.curr_pose contains the current position (x, y) and orientation (theta) of the robot in the map frame
+        theta = self.curr_pose.theta  # Robot's orientation in the map frame
+
+        # Rotation (due to robot's orientation)
+        x_map_rotated = x_robot * math.cos(theta) - y_robot * math.sin(theta)
+        y_map_rotated = x_robot * math.sin(theta) + y_robot * math.cos(theta)
+
+        # Translation (due to robot's position)
+        x_map = x_map_rotated + self.curr_pose.x
+        y_map = y_map_rotated + self.curr_pose.y
+
+        return x_map, y_map
 
     def get_path(self):
+        self.update_occupancy_map_with_obstacles()
+        
+        if not self.start or len(self.start) < 2:
+            self.get_logger().info("Start position not ready.")
+            return
+        
         goal = self.coord_2_pixel((self.goal_pose.pose.position.x, self.goal_pose.pose.position.y))
 
         # Run A* and check if a valid path is found
         [path, cost] = find_path(self.start, goal, self.occupancy_map)
         self.estimated_heuristic = cost
-
-        if path.size == 0:
+        print(path.size )
+        if path.size > 0:
             # Failed to find a path to the goal
-            self.get_logger().info("No path found")
-            self.path_cart = []  # Keep path_cart as an empty list
-        else:
-            # Convert path from pixels to map frame in meters and update path_cart
-            path_scale = path*self.map_res
+            # self.get_logger().info("No path found")
+            
+            path_scale = path * self.map_res
             self.path_cart = path_scale + self.origin
-
-            # Create RViz message for visualizing path
             path_msg = Path()
             path_msg.header.frame_id = 'map'
             for pose in self.path_cart:
@@ -120,80 +181,69 @@ class AStarActionServer(Node):
             self.path_pub.publish(path_msg)
 
             self.get_logger().info(f"Number of points: {self.path_cart.shape[0]}")
+            # self.visualize_path()
+            self.start_goal = True
+        else:
+            self.get_logger().info("No path found")
+            self.path_cart = np.array([])
+            self.start_goal = False
 
-        
-        
+    def visualize_path(self):
+    
+        path_msg = Path()
+        path_msg.header.frame_id = 'map'
+        for pose in self.path_cart:
+            point = PoseStamped()
+            point.pose.position.x = pose[0]
+            point.pose.position.y = pose[1]
+            path_msg.poses.append(point)
+        self.path_pub.publish(path_msg)
+        self.get_logger().info(f"Path visualized with {len(self.path_cart)} points")
+       
     def follow_path(self):
-        """Follow the calculated path and respond to new goals"""
-        # self.get_logger().info(f"follow_path called, start_goal: {self.start_goal}, new_goal_received: {self.new_goal_received}")
-        if self.start_goal :
-            self.get_logger().info('Executing goal...')
-            prev_pose = [self.curr_pose.x, self.curr_pose.y]
-            dist_travelled = 0
+        if not self.start_goal or len(self.path_cart) == 0:
+            return  # No path to follow or goal not set
 
-            for point in self.path_cart:
-                self.get_logger().info(f"Current Pose: [{self.curr_pose.x:.3f},{self.curr_pose.y:.3f},{self.curr_pose.theta:.3f}]")
-                self.get_logger().info(f"Going to: {point}")
-                self.setpoint_pose.x = point[0]
-                self.setpoint_pose.y = point[1]
-                self.reached_intermediate_goal = False
+        # Check if there is a new goal
+        if self.new_goal_received:
+            self.handle_new_goal()
+            return  # Start following the new path
 
-                while not self.reached_intermediate_goal:
-                    if self.new_goal_received:
-                        self.new_goal_received = False
-                        self.start = self.coord_2_pixel((self.curr_pose.x, self.curr_pose.y))
-                        self.get_path()  # Recalculate the path for the new goal
-                        return  # Exit to restart follow_path with the new path
+        # Move towards the current point on the path
+        current_point = self.path_cart[0]
+        self.setpoint_pose.x = current_point[0]
+        self.setpoint_pose.y = current_point[1]
 
-                    self.update_current_pose()
-                    self.run_control_loop_once()
+        # Check if the intermediate goal is reached
+        if self.get_position_error() < self.POSITION_THRESHOLD:
+            if len(self.path_cart) > 1:
+                self.path_cart = self.path_cart[1:, :]  
 
-                    # Update the distance travelled
-                    dist_travelled += math.sqrt(
-                        math.pow(self.curr_pose.x - prev_pose[0], 2) + 
-                        math.pow(self.curr_pose.y - prev_pose[1], 2)
-                    )
-                    # prev_pose = [self.curr_pose.x, self.curr_pose.y]
-                    rclpy.spin_once(self, timeout_sec=0.01)
-            # self.stop_robot() 
-            
-            self.start_goal = False  # Reset this flag or similar flags
-            self.path_cart = []      
-            
+            else:
+                self.start_goal = False
+                self.reached_intermediate_goal = True
+                self.stop_robot()
+                return
+        self.reached_intermediate_goal = False
+        self.update_current_pose()
+        self.run_control_loop_once()
+    # Continue in the next call
+
+
+
+    def handle_new_goal(self):
+        """Handle the process when a new goal is received."""
+        self.new_goal_received = False
+        self.start = self.coord_2_pixel((self.curr_pose.x, self.curr_pose.y))
+        self.get_path()  # Recalculate the path for the new goal
+
+                
     def stop_robot(self):
         # Code to stop the robot
         self.vel_msg.linear.x = 0.0
         self.vel_msg.angular.z = 0.0
         self.publisher_vel.publish(self.vel_msg)
         print("Robot stopped at final goal")        
-        # if self.start_goal : 
-        #     start_time = self.get_clock().now()
-        #     self.get_logger().info('Executing goal...') 
-            
-        #     prev_pose = [self.curr_pose.x, self.curr_pose.y]
-        #     # print(prev_pose)
-        #     dist_travelled = 0
-            
-        #     for point in self.path_cart:
-        #         self.get_logger().info(f"Current Pose: [{self.curr_pose.x:.3f},{self.curr_pose.y:.3f},{self.curr_pose.theta:.3f}]")
-        #         self.get_logger().info(f"Going to: {point}")
-        #         self.setpoint_pose.x = point[0]
-        #         self.setpoint_pose.y = point[1]
-        #         self.reached_intermediate_goal = False
-        #         while not self.reached_intermediate_goal:
-        #             self.update_current_pose() # Get latest position of turtlebot
-        #             self.run_control_loop_once() # run 1 iteration of P control
-                    
-        #             # Create feedback message with updated info
-        #             dist_travelled += math.sqrt(
-        #                 math.pow(self.curr_pose.x - prev_pose[0], 2) + math.pow(self.curr_pose.y - prev_pose[1], 2)
-        #             )
-
-        #             prev_pose = [self.curr_pose.x, self.curr_pose.y]
-        #             rclpy.spin_once(self, timeout_sec=0.1) # 10Hz spin
-        
-                    
-
 
     def map_callback(self, msg):
         """Load received global costmap"""
@@ -282,11 +332,11 @@ class AStarActionServer(Node):
                          math.pow((self.setpoint_pose.y - self.curr_pose.y), 2))
         
         
-    def get_linear_velocity(self, Kp=2.2) -> float:
+    def get_linear_velocity(self, Kp=1.4) -> float:
         """Proportional controller for Position"""
         # if we need to rotate more than 60 degrees (arbitrarily), we should first turn and then move forward later
         # This will allow robot to stay on course
-        if abs(self.get_angle_error()) > math.pi/3.0:
+        if abs(self.get_angle_error()) > math.pi/4.0:
             return 0.0
         # Calculate proportional linear velocity
         return self.bound(Kp * self.get_position_error(), 0.2) # Max linear velocity from Turtlebot4 datasheet: 0.3m/s
@@ -302,37 +352,102 @@ class AStarActionServer(Node):
         # and the rotation shouldn't be 1 whole round rotation : = -6.2 rad
         # So, Accounts for discontinous jump at pi -> -pi
         # by adding or subtracting a full turn (2pi rad) when the angle resulting angle is outside the (-pi, pi) range.
-        if angle_error < -math.pi:
-            angle_error = angle_error + 2*math.pi
-        elif (angle_error > math.pi):
-            angle_error = angle_error - 2*math.pi
+        angle_error = (angle_error + math.pi) % (2 * math.pi) - math.pi
         return angle_error
 
-    def get_angular_velocity(self, Kp=1.2) -> float:
+    def get_angular_velocity(self, Kp=2.5) -> float:
         '''Proportional controller for orientation to face towards setpoint position'''
         # Calculate proprotional angular velocity
-        return self.bound(Kp * self.get_angle_error(), 90.0) # Max angular velocity from Turtlebot4 datasheet: 1.9rad/s
-
-    
-    def run_control_loop_once(self):
-        """Run 1 iteration of P-controller"""
-        # If our control loop is still active when the robot is really close, then we will start seeing unnecessary osciliations
-        # due to control inaccuracies. e.g. Turtlebot jittering back and forth. 
-        # So, if turtlebot is closer than 0.1 to setpoint, mark that we've reached the intermediate goal
-        # This avoids oscillation, as well as allowing us to quickly move to next intermediate goal point
-        if self.get_position_error() >= 0.1:
-            # generate control signals (velocities) required to reach intermediate goal pose
-            self.vel_msg.linear.x = self.get_linear_velocity() # move towards setpoint
-            self.vel_msg.angular.z = self.get_angular_velocity() # orient towards setpoint
-        else:
-            self.reached_intermediate_goal = True
-            print("jjjjj")
-            # Stopping our robot after the movement is over.
-            self.vel_msg.linear.x = 0.0
-            self.vel_msg.angular.z = 0.0
-            
+        angular_velocity = 0.0
         
+        # self.bound(Kp * self.get_angle_error(), 90.0) # Max angular velocity from Turtlebot4 datasheet: 1.9rad/s
+        angular_velocity = Kp * self.get_angle_error()
+
+        angular_velocity = max(-0.5,min(angular_velocity, 0.5))
+
+        return angular_velocity
+
+        
+    def run_control_loop_once(self):
+        SMOOTHING_FACTOR = 0.5  # Start with a lower value, like 0.05
+
+        # Calculate desired velocities from P-controller
+        desired_linear_vel = self.get_linear_velocity()
+        desired_angular_vel = self.get_angular_velocity()
+
+        # Apply smoothing
+        self.vel_msg.linear.x += (desired_linear_vel - self.vel_msg.linear.x) * SMOOTHING_FACTOR
+        self.vel_msg.angular.z += (desired_angular_vel - self.vel_msg.angular.z) * SMOOTHING_FACTOR
+
+        # Ensure velocities are within bounds
+        self.vel_msg.linear.x = self.bound(self.vel_msg.linear.x, 0.2)  # Linear velocity bound
+        self.vel_msg.angular.z = max(-0.5, min(self.vel_msg.angular.z, 0.5))  # Angular velocity bound
+        self.get_logger().info(f'Linear Velocity: {self.vel_msg.linear.x}, Angular Velocity: {self.vel_msg.angular.z}')
+
+        # Publish the velocity command
         self.publisher_vel.publish(self.vel_msg)
+        
+    # def run_control_loop_once(self):
+    #     if not self.start_goal or len(self.path_cart) == 0:
+    #         return  # No path to follow or goal not set
+
+    #     # Current target point
+    #     current_point = self.path_cart[0]
+    #     direction = [current_point[0] - self.curr_pose.x, current_point[1] - self.curr_pose.y]
+    #     velocity = hypot(direction[0], direction[1])
+    #     theta_goal = atan2(direction[1], direction[0])
+
+    #     # Calculate angle difference
+    #     theta_difference = theta_goal - self.curr_pose.theta
+    #     if theta_difference > pi:
+    #         theta_difference -= 2 * pi
+    #     elif theta_difference < -pi:
+    #         theta_difference += 2 * pi
+
+    #     # Proportional controller gains
+    #     kp_v = 0.5  # Linear velocity gain
+    #     kp_w = 1.2  # Angular velocity gain
+
+    #     # Calculate linear and angular velocities
+    #     if abs(theta_difference) > 0.5:
+    #         self.vel_msg.linear.x = 0.0
+    #         self.vel_msg.angular.z = kp_w * theta_difference
+    #     else:
+    #         self.vel_msg.linear.x = kp_v * velocity
+    #         self.vel_msg.angular.z = kp_w * theta_difference
+
+    #     # Publish the velocity command
+    #     self.publisher_vel.publish(self.vel_msg)
+
+    #     # Check if the robot has reached the current target point
+    #     if hypot(self.curr_pose.x - current_point[0], self.curr_pose.y - current_point[1]) < 0.1:
+    #         # Move to the next point in the path
+    #         self.path_cart.pop(0)
+
+
+    def detect_obstacle(self, laser_scan_msg):
+        FRONT_OBSTACLE_DISTANCE_THRESHOLD = 0.1  # 0.25 meters, slightly more than robot's length
+        FRONT_ARC_DEGREES = 4  # Narrow frontal arc (in degrees)
+
+        num_ranges = len(laser_scan_msg.ranges)
+        middle_idx = num_ranges // 2
+        arc_half_width = int((FRONT_ARC_DEGREES / 360) * num_ranges)
+
+        front_start_idx = max(middle_idx - arc_half_width, 0)
+        front_end_idx = min(middle_idx + arc_half_width, num_ranges)
+        
+        
+        for i in range(front_start_idx, front_end_idx):
+            if 0 < laser_scan_msg.ranges[i] < FRONT_OBSTACLE_DISTANCE_THRESHOLD:
+                print(front_start_idx)
+                # self.get_logger().info(f"Obstacle detected at index {i}, range: {laser_scan_msg.ranges[i]}")
+                return True  # Obstacle detected within threshold in the frontal arc
+
+        return False
+
+    def laser_scan_callback(self, msg):
+        # Update the current laser scan data
+        self.current_laser_scan = msg
     
     def goal_pose_rviz_callback(self, msg):
         """Store `2D Goal Pose` from RViz"""
@@ -340,38 +455,21 @@ class AStarActionServer(Node):
         self.get_logger().info(f"Goal position: {self.goal_pose.pose.position.x, self.goal_pose.pose.position.y}")
         self.new_goal_received = True
         self.start_goal= True 
-        
-        self.get_logger().info(f"follow_path called, start_goal: {self.start_goal}")
-        
-            
-
-# def main(args=None):
-#     rclpy.init(args=args)
-#     a_star_action_server = AStarActionServer()
-#     while True:
-#         rclpy.spin_once(a_star_action_server)
-#     rclpy.shutdown()
     
 
 def main(args=None):
     rclpy.init(args=args)
     a_star_action_server = AStarActionServer()
-
-    # Main loop for ROS callbacks and path following
+    
     try:
         while rclpy.ok():
-            # Handle ROS callbacks
             rclpy.spin_once(a_star_action_server)
-
-            # Run a portion of follow_path logic (may require restructuring of follow_path)
-            a_star_action_server.follow_path()
+            # follow_path logic is now handled within get_path
     except KeyboardInterrupt:
         pass
     finally:
         rclpy.shutdown()
 
-# if name == 'main':
-#     main()
 
 if __name__ == '__main__':
     main()

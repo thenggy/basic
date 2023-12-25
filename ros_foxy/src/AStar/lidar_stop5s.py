@@ -29,10 +29,12 @@ class P_Path(Node):
         self.start = 0
         
         self.obstacle_detected = False
-
+    
+    
     def obstacle_detected_callback(self, msg):
             self.obstacle_detected = msg.data
-        
+            
+     # P control    
     def odom_callback(self, msg):
         pose = msg.pose.pose
         
